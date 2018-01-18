@@ -14,7 +14,7 @@ actions = ["up", "down", "left", "right"]
 visited = [[False for i in range(y)] for j in range(x)]
 board = Canvas(master, width=x * Width, height=y * Width)
 player = (0, y - 1)
-score = 1
+score = 0
 restart = False
 walk_reward = -0.04
 
@@ -76,32 +76,36 @@ def try_move(dx, dy):
     global player, x, y, score, me, restart
     if restart == True:
         restart_game()
+    state=findState()    
     new_x = player[0] + dx
     new_y = player[1] + dy
+    rew=0
     if (new_x >= 0) and (new_x < x) and (new_y >= 0) and (new_y < y) and not ((new_x, new_y) in walls):
 
         player = (new_x, new_y)
     else:
-        score -= 0.5
+        rew -= 0.5
+        score-=0.5
         restart = True
-        return
+        return rew,state,state,True
     for (i, j, c, w) in specials:
         if new_x == i and new_y == j:
-            score += w
+            rew += w
+            score +=w
             restart = True
-            return
-    #if visited[new_x][new_y] == True:
-     #   score -= 0.2
-    #else:
-      #  score += 0.2
+            return rew,state,state,True
+    if visited[new_x][new_y] == True:
+        score -= 0.2
+    else:
+        score += 0.02
     visited[new_x][new_y] = True
-
+    
     #print(findState(new_x,new_y))
     board.create_rectangle(new_x * Width, new_y * Width, (new_x + 1) * Width, (new_y + 1) * Width, fill="grey", width=1)
     board.tag_raise(me)
     board.coords(me, new_x * Width + Width * 2 / 10, new_y * Width + Width * 2 / 10, new_x * Width + Width * 8 / 10,
                  new_y * Width + Width * 8 / 10)
-
+    return rew,state,findState(),False
     # print "score: ", score
 
 
@@ -184,7 +188,7 @@ def restart_game():
                                        fill="white", width=1)
                 visited[new_x][new_y]=False
     visited[0][y - 1] = True
-    score = 1
+    score = 0
     restart = False
     board.coords(me, player[0] * Width + Width * 2 / 10, player[1] * Width + Width * 2 / 10,
                  player[0] * Width + Width * 8 / 10, player[1] * Width + Width * 8 / 10)
