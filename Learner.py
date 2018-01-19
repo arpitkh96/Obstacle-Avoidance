@@ -59,6 +59,7 @@ def run():
     time.sleep(1)
     alpha = 1
     t = 1
+    World.start()
     while True:
         # Pick the right action
         s = World.player

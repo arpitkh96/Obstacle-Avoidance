@@ -17,13 +17,13 @@ player = (0, y - 1)
 score = 0
 restart = False
 walk_reward = -0.04
-
+me=None
 walls = []
 
 specials = [(1, 1, "red", -0.5),(3, 3, "red", -0.5),(7, 7, "red", -0.5),(8, 8, "red", -0.5),(6, 3, "red", -0.5),(4, 6, "red", -0.5), (1, 2, "red", -0.5), (2, 1, "red", -0.5), (2, 2, "red", -0.5), (4, 1, "red", -0.5)]
 cell_scores = {}
-
-
+draw=False
+rectangles=[]
 def create_triangle(i, j, action):
     if action == actions[0]:
         return board.create_polygon((i + 0.5 - triangle_size) * Width, (j + triangle_size) * Width,
@@ -48,32 +48,23 @@ def create_triangle(i, j, action):
 
 
 def render_grid():
-    global specials, walls, Width, x, y, player,visited
+    global specials, walls, Width, x, y, player,visited,draw,rectangles
+    if not draw:
+        return
     for i in range(x):
+        l=[]
         for j in range(y):
 
             if visited[i][j]==False:
-                board.create_rectangle(i * Width, j * Width, (i + 1) * Width, (j + 1) * Width, fill="white", width=1)
+                l.append(board.create_rectangle(i * Width, j * Width, (i + 1) * Width, (j + 1) * Width, fill="white", width=1))
             else:
-                board.create_rectangle(i * Width, j * Width, (i + 1) * Width, (j + 1) * Width, fill="grey", width=1)
-
-            temp = {}
-            for action in actions:
-                temp[action] = create_triangle(i, j, action)
-            cell_scores[(i, j)] = temp
+                l.append(board.create_rectangle(i * Width, j * Width, (i + 1) * Width, (j + 1) * Width, fill="grey", width=1))
+        rectangles.append(l)
     for (i, j, c, w) in specials:
-        board.create_rectangle(i * Width, j * Width, (i + 1) * Width, (j + 1) * Width, fill=c, width=1)
-    for (i, j) in walls:
-        board.create_rectangle(i * Width, j * Width, (i + 1) * Width, (j + 1) * Width, fill="black", width=1)
-
-
-render_grid()
-
-
-
+        board.itemconfigure(rectangles[i][j], fill='red')
 
 def try_move(dx, dy):
-    global player, x, y, score, me, restart
+    global player, x, y, score, me, restart,draw
     if restart == True:
         restart_game()
     state=findState()    
@@ -95,16 +86,16 @@ def try_move(dx, dy):
             restart = True
             return rew,state,state,True
     if visited[new_x][new_y] == True:
-        score -= 0.2
+        rew -= 0.2
     else:
-        score += 0.02
+        rew += 0.02
     visited[new_x][new_y] = True
-    
-    #print(findState(new_x,new_y))
-    board.create_rectangle(new_x * Width, new_y * Width, (new_x + 1) * Width, (new_y + 1) * Width, fill="grey", width=1)
-    board.tag_raise(me)
-    board.coords(me, new_x * Width + Width * 2 / 10, new_y * Width + Width * 2 / 10, new_x * Width + Width * 8 / 10,
-                 new_y * Width + Width * 8 / 10)
+    if draw:
+        #print(findState(new_x,new_y))
+        board.itemconfigure(rectangles[new_x][new_y], fill='grey')
+        board.tag_raise(me)
+        board.coords(me, new_x * Width + Width * 2 / 10, new_y * Width + Width * 2 / 10, new_x * Width + Width * 8 / 10,
+                     new_y * Width + Width * 8 / 10)
     return rew,state,findState(),False
     # print "score: ", score
 
@@ -179,18 +170,20 @@ def call_right(event):
 
 
 def restart_game():
-    global player, score, me, restart,visited
+    global draw,player, score, me, restart,visited
     player = (0, y - 1)
     for new_x in range(x):
         for new_y in range(y):
             if visited[new_x][new_y]==True:
-                board.create_rectangle(new_x * Width, new_y * Width, (new_x + 1) * Width, (new_y + 1) * Width,
-                                       fill="white", width=1)
                 visited[new_x][new_y]=False
+                board.itemconfigure(rectangles[new_x][new_y], fill='white')
+
+                
     visited[0][y - 1] = True
     score = 0
     restart = False
-    board.coords(me, player[0] * Width + Width * 2 / 10, player[1] * Width + Width * 2 / 10,
+    if draw:
+        board.coords(me, player[0] * Width + Width * 2 / 10, player[1] * Width + Width * 2 / 10,
                  player[0] * Width + Width * 8 / 10, player[1] * Width + Width * 8 / 10)
 
 
@@ -203,12 +196,27 @@ master.bind("<Down>", call_down)
 master.bind("<Right>", call_right)
 master.bind("<Left>", call_left)
 
-me = board.create_rectangle(player[0] * Width + Width * 2 / 10, player[1] * Width + Width * 2 / 10,
+
+def pause():
+    global draw
+    draw=False
+def start():
+    global draw
+    draw=True
+        
+def stop():
+    global draw
+    draw=False
+    master.destroy()
+
+def start_game():
+    global draw,me
+    draw=True
+    render_grid()
+    me = board.create_rectangle(player[0] * Width + Width * 2 / 10, player[1] * Width + Width * 2 / 10,
                             player[0] * Width + Width * 8 / 10, player[1] * Width + Width * 8 / 10, fill="orange",
                             width=1, tag="me")
 
-board.grid(row=0, column=0)
-
-
-def start_game():
+    board.grid(row=0, column=0)
+    draw=False
     master.mainloop()
